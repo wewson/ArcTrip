@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+aiosqlite
+python-dotenv
+httpx[http2]
+python-multipart
+pydantic-settings
+loguru
+orjson
+tenacity
+web3
+circle-developer-controlled-wallets
+apscheduler

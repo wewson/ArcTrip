@@ -1,0 +1,13 @@
+# 忽略敏感配置文件
+.env
+
+# 忽略本地数据库文件
+*.db
+backend/arctrip.db
+
+# 忽略 Python 缓存
+__pycache__/
+*.pyc
+
+# 忽略前端依赖（如果 frontend 里面有 node_modules）
+node_modules/
