@@ -9,7 +9,8 @@ const DEFAULT_RPC_URL = "https://rpc.testnet.arc.network";
 export default function App() {
   const [activeTab, setActiveTab] = useState('ai-travel'); 
 
-  const [backendUrl, setBackendUrl] = useState("http://127.0.0.1:8000");
+  // 完美对接你配置的公网 IP 和 8003 端口
+  const [backendUrl, setBackendUrl] = useState("http://217.60.249.62:8003");
   const [factoryAddress] = useState(CONSTANT_FACTORY_ADDRESS);
   const [usdcAddress, setUsdcAddress] = useState("0x3600000000000000000000000000000000000000");
   const [chainId, setChainId] = useState(5042002);
@@ -67,7 +68,6 @@ export default function App() {
           const minTemp = weatherRes.data.daily.temperature_2m_min[0];
           const avgTemp = Math.round((maxTemp + minTemp) / 2);
           
-          // 🌡️ 已经为您去掉了多余的括号备注，只保留核心状态文案
           let statusDesc = "Comfortable";
           if (avgTemp < 0) {
             statusDesc = "Extreme Arctic Cold";
@@ -121,8 +121,12 @@ export default function App() {
     }
   };
 
+  // 🦊 核心修复：彻底拔除卡死整个网页的硬编码 alert
   const connectWallet = async () => {
-    if (!window.ethereum) return alert("Please install OKX Wallet extension first!");
+    if (!window.ethereum) {
+      addLog("❌ Error: OKX Wallet (or injection environment) not detected. Please make sure the browser extension is installed and enabled.");
+      return;
+    }
     try {
       setLoading(true);
       const provider = new ethers.BrowserProvider(window.ethereum);
@@ -139,7 +143,7 @@ export default function App() {
   };
 
   const handleApprove = async () => {
-    if (!account) return alert("Please connect wallet first");
+    if (!account) return addLog("⚠️ Interaction blocked: Connect wallet first before granting token spending authorization.");
     try {
       setLoading(true);
       addLog("🪙 Requesting token spending authorization allowance...");
@@ -160,7 +164,7 @@ export default function App() {
   };
 
   const generateAIPlan = async () => {
-    if (!account) return alert("Please connect wallet first");
+    if (!account) return addLog("⚠️ Interaction blocked: Connect wallet first before generating travel plans.");
     try {
       setLoadingPlan(true); setAiResult(""); setFeeTxHash("");
       const currentPlanId = `PLAN-${Date.now()}`;
@@ -199,8 +203,8 @@ export default function App() {
   };
 
   const createRescueVault = async () => {
-    if (!account) return alert("Please connect wallet first");
-    if (!backupWallet.trim()) return alert("💡 Security Warning: Please define a Target Emergency Recovery Destination Wallet address to consolidate assets first.");
+    if (!account) return addLog("⚠️ Interaction blocked: Connect wallet first before setting up an escrow structure.");
+    if (!backupWallet.trim()) return addLog("💡 Security Warning: Please define a Target Emergency Recovery Destination Wallet address to consolidate assets first.");
 
     try {
       setLoading(true);
@@ -279,7 +283,7 @@ export default function App() {
           setRescueVaultAddress(CONSTANT_FACTORY_ADDRESS);
           setRescueOrderId(currentRescueId);
           addLog(`✅ Full pipeline synced successfully. Clearing token credential: ${currentRescueId}`);
-          setVaultStatusText("贴 🟢 Protection Module Armed");
+          setVaultStatusText("🟢 Protection Module Armed");
         } catch (e) {
           setRescueVaultAddress(CONSTANT_FACTORY_ADDRESS);
           setRescueOrderId(currentRescueId);
@@ -306,8 +310,8 @@ export default function App() {
   };
 
   const executeAgentPayout = async () => {
-    if (!account) return alert("Please connect wallet first");
-    if (!rescueOrderId.trim()) return alert("Please supply a valid clearing order reference ID token.");
+    if (!account) return addLog("⚠️ Interaction blocked: Connect wallet first before initializing emergency payouts.");
+    if (!rescueOrderId.trim()) return addLog("⚠️ Please supply a valid clearing order reference ID token.");
 
     try {
       setLoading(true);
@@ -545,4 +549,3 @@ export default function App() {
     </div>
   );
 }
-
