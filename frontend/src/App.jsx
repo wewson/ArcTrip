@@ -9,7 +9,7 @@ const DEFAULT_RPC_URL = "https://rpc.testnet.arc.network";
 export default function App() {
   const [activeTab, setActiveTab] = useState('ai-travel'); 
 
-  const [backendUrl, setBackendUrl] = useState("http://217.60.249.62:8003");
+  const [backendUrl, setBackendUrl] = useState("https://217.60.249.62.sslip.io");
   const [factoryAddress] = useState(CONSTANT_FACTORY_ADDRESS);
   const [usdcAddress, setUsdcAddress] = useState("0x3600000000000000000000000000000000000000");
   const [chainId, setChainId] = useState(5042002);
