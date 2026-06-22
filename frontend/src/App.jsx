@@ -9,7 +9,6 @@ const DEFAULT_RPC_URL = "https://rpc.testnet.arc.network";
 export default function App() {
   const [activeTab, setActiveTab] = useState('ai-travel'); 
 
-  // 完美对接你配置的公网 IP 和 8003 端口
   const [backendUrl, setBackendUrl] = useState("http://217.60.249.62:8003");
   const [factoryAddress] = useState(CONSTANT_FACTORY_ADDRESS);
   const [usdcAddress, setUsdcAddress] = useState("0x3600000000000000000000000000000000000000");
@@ -97,23 +96,31 @@ export default function App() {
       const currentChainId = Number(network.chainId);
       if (currentChainId !== chainId) {
         addLog(`⚠️ Network mismatch detected (Current: ${currentChainId}, Required: ${chainId}). Requesting switch...`);
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x' + chainId.toString(16) }],
-        });
+        
+        // 同样在网络切换时优先使用 OKX 注入环境
+        const injectedProvider = window.okxwallet || window.ethereum;
+        if (injectedProvider) {
+          await injectedProvider.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0x' + chainId.toString(16) }],
+          });
+        }
       }
     } catch (switchError) {
       if (switchError.code === 4902) {
         try {
-          await window.ethereum.request({
-            method: 'wallet_addEthereumChain',
-            params: [{
-              chainId: '0x' + chainId.toString(16),
-              chainName: 'Arc Testnet',
-              rpcUrls: [rpcUrl],
-              nativeCurrency: { name: 'ARC', symbol: 'ARC', decimals: 18 }
-            }],
-          });
+          const injectedProvider = window.okxwallet || window.ethereum;
+          if (injectedProvider) {
+            await injectedProvider.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: '0x' + chainId.toString(16),
+                chainName: 'Arc Testnet',
+                rpcUrls: [rpcUrl],
+                nativeCurrency: { name: 'ARC', symbol: 'ARC', decimals: 18 }
+              }],
+            });
+          }
         } catch (addError) {
           addLog(`❌ Failed to automatically add network: ${addError.message}`);
         }
@@ -121,18 +128,20 @@ export default function App() {
     }
   };
 
-  // 🦊 核心修复：彻底拔除卡死整个网页的硬编码 alert
+  // 🦊 终极修复：精准穿透检测 window.okxwallet，防止被其他钱包插件拦截
   const connectWallet = async () => {
-    if (!window.ethereum) {
-      addLog("❌ Error: OKX Wallet (or injection environment) not detected. Please make sure the browser extension is installed and enabled.");
+    const okxProvider = window.okxwallet || window.ethereum;
+
+    if (!okxProvider) {
+      addLog("❌ Error: OKX Wallet injection vector not found. Please ensure the extension is unlocked and 'Set as Default Wallet' is active.");
       return;
     }
     try {
       setLoading(true);
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const provider = new ethers.BrowserProvider(okxProvider);
+      const accounts = await okxProvider.request({ method: 'eth_requestAccounts' });
       setAccount(accounts[0]);
-      addLog(`🦊 Wallet injected successfully: ${accounts[0]}`);
+      addLog(`🦊 OKX Wallet linked successfully: ${accounts[0]}`);
       
       await verifyAndSwitchNetwork(provider);
     } catch (err) {
@@ -144,10 +153,11 @@ export default function App() {
 
   const handleApprove = async () => {
     if (!account) return addLog("⚠️ Interaction blocked: Connect wallet first before granting token spending authorization.");
+    const okxProvider = window.okxwallet || window.ethereum;
     try {
       setLoading(true);
       addLog("🪙 Requesting token spending authorization allowance...");
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      const provider = new ethers.BrowserProvider(okxProvider);
       const signer = await provider.getSigner();
       const erc20Abi = ["function approve(address spender, uint256 amount) public returns (bool)"];
       const usdcContract = new ethers.Contract(usdcAddress, erc20Abi, signer);
@@ -165,10 +175,11 @@ export default function App() {
 
   const generateAIPlan = async () => {
     if (!account) return addLog("⚠️ Interaction blocked: Connect wallet first before generating travel plans.");
+    const okxProvider = window.okxwallet || window.ethereum;
     try {
       setLoadingPlan(true); setAiResult(""); setFeeTxHash("");
       const currentPlanId = `PLAN-${Date.now()}`;
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      const provider = new ethers.BrowserProvider(okxProvider);
       const signer = await provider.getSigner();
       const erc20Abi = ["function transfer(address to, uint256 amount) public returns (bool)"];
       const usdcContract = new ethers.Contract(usdcAddress, erc20Abi, signer);
@@ -206,6 +217,7 @@ export default function App() {
     if (!account) return addLog("⚠️ Interaction blocked: Connect wallet first before setting up an escrow structure.");
     if (!backupWallet.trim()) return addLog("💡 Security Warning: Please define a Target Emergency Recovery Destination Wallet address to consolidate assets first.");
 
+    const okxProvider = window.okxwallet || window.ethereum;
     try {
       setLoading(true);
       setIsRescued(false);
@@ -213,7 +225,7 @@ export default function App() {
       const currentRescueId = "X402-RESCUE-" + Date.now();
       addLog(`⚙️ Requesting wallet signature to deposit principal assets and bind recovery parameters...`);
 
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      const provider = new ethers.BrowserProvider(okxProvider);
       const signer = await provider.getSigner();
 
       const factoryAbi = [
